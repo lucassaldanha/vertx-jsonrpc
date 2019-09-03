@@ -6,6 +6,8 @@
     </encoder>
   </appender>
 
+  <logger name="com.lsoftware.jsonrpc" level="info"/>
+
   <root level="info">
     <appender-ref ref="STDOUT" />
   </root>

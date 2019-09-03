@@ -12,9 +12,7 @@ import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.json.Json;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,6 +40,8 @@ public class JsonRpcMethodRegistry extends AbstractVerticle {
 
       MessageConsumer<Object> consumer = vertx.eventBus()
           .consumer(method.eventBusAddress(), msg -> {
+            LOG.trace("Method {} consuming message {}", method.name(), msg.body());
+
             JsonRpcRequest request = Json.decodeValue((String) msg.body(), JsonRpcRequest.class);
             JsonRpcResult result = method.process(request.getParams());
             msg.reply(Json.encode(result));
