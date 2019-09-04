@@ -20,7 +20,7 @@ public class Main {
     Vertx vertx = Vertx.vertx();
 
     Promise<String> jsonRpcProcessorPromise = Promise.promise();
-    vertx.deployVerticle(new JsonRpcProcessor(), jsonRpcProcessorPromise);
+    vertx.deployVerticle(new JsonRpcMessageProcessor(), jsonRpcProcessorPromise);
 
     JsonRpcMethodRegistry methodRegistry = new JsonRpcMethodRegistry();
     methodRegistry.addMethodGroup(new MathMethodsGroup());

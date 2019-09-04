@@ -1,6 +1,6 @@
 package com.lsoftware.jsonrpc.websockets;
 
-import static com.lsoftware.jsonrpc.JsonRpcProcessor.JSONRPC_PROCESSOR_EVENTBUS_ADDRESS;
+import static com.lsoftware.jsonrpc.JsonRpcMessageProcessor.JSONRPC_PROCESSOR_EVENTBUS_ADDRESS;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;

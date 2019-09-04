@@ -16,9 +16,9 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class JsonRpcProcessor extends AbstractVerticle {
+public class JsonRpcMessageProcessor extends AbstractVerticle {
 
-  private static final Logger LOG = LoggerFactory.getLogger(JsonRpcProcessor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(JsonRpcMessageProcessor.class);
   public static final String JSONRPC_PROCESSOR_EVENTBUS_ADDRESS = "jsonrpc.processor";
   private MessageConsumer<Object> consumer;
 

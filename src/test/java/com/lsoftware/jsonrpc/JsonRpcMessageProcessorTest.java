@@ -1,6 +1,6 @@
 package com.lsoftware.jsonrpc;
 
-import static com.lsoftware.jsonrpc.JsonRpcProcessor.JSONRPC_PROCESSOR_EVENTBUS_ADDRESS;
+import static com.lsoftware.jsonrpc.JsonRpcMessageProcessor.JSONRPC_PROCESSOR_EVENTBUS_ADDRESS;
 import static com.lsoftware.jsonrpc.api.JsonRpcMethod.JSONRPC_METHOD_EVENTBUS_ADDRESS_PREFIX;
 
 import com.lsoftware.jsonrpc.api.JsonRpcResult;
@@ -24,7 +24,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
-public class JsonRpcProcessorTest {
+public class JsonRpcMessageProcessorTest {
 
   private EventBus eventBus;
 
@@ -33,8 +33,8 @@ public class JsonRpcProcessorTest {
     Vertx vertx = Vertx.vertx();
     eventBus = vertx.eventBus();
 
-    JsonRpcProcessor jsonRpcProcessor = new JsonRpcProcessor();
-    vertx.deployVerticle(jsonRpcProcessor, context.asyncAssertSuccess());
+    JsonRpcMessageProcessor jsonRpcMessageProcessor = new JsonRpcMessageProcessor();
+    vertx.deployVerticle(jsonRpcMessageProcessor, context.asyncAssertSuccess());
   }
 
   @Test

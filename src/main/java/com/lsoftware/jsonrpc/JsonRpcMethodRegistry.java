@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 
 public class JsonRpcMethodRegistry extends AbstractVerticle {
 
-  private static final Logger LOG = LoggerFactory.getLogger(JsonRpcProcessor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(JsonRpcMessageProcessor.class);
 
   private final Map<String, JsonRpcMethod> availableMethods = new HashMap<>();
   private final Set<MessageConsumer<?>> consumers = new ConcurrentHashSet<>();

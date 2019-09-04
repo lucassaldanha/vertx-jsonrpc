@@ -13,13 +13,12 @@ This project started as a prototype and now it can help others also implementing
 using Vert.x.
 
 ## Architecture
-There are four main components in this architecture: 
+There are three main components in this architecture: 
 - JsonRpcServer
-- JsonRpcProcessor
+- JsonRpcMessageProcessor
 - JsonRpcMethodRegistry
-- JsonRpcMethod
 
-Each one of these components have been implemented as 
+The first three components have been implemented as 
 [Verticles](https://vertx.io/docs/vertx-core/java/#_verticles) and communicate via the 
 [EventBus](https://vertx.io/docs/vertx-core/java/#_verticles).
 
@@ -28,9 +27,9 @@ The server is responsible for the handling different channels. For example. the 
 handles HTTP requests.
 
 For each different channel that we want to support, we need a new JsonRpcServer that will 
-encode/decode messaged from the channel to the JsonRpcProcessor.
+encode/decode messaged from the channel to the JsonRpcMessageProcessor.
 
-### JsonRpcProcessor
+### JsonRpcMessageProcessor
 The processor is a main piece in the JSON-RPC service. It is responsible for parsing the messages 
 received from the server and decoding it into a JSON-RPC request. On a successful decoding, the 
 processor will dispatch the request to the respective JSON-RPC method to get a result.
@@ -38,10 +37,8 @@ processor will dispatch the request to the respective JSON-RPC method to get a r
 ### JsonRpcMethodRegistry
 The registry is where all implemented JSON-RPC methods are registered and made available to the
 application. For each JsonRpcMethod, the registry will setup the proper listeners on the EventBus.
-
-### JsonRpcMethod
-Each JSON-RPC method should implement this interface and be registered in the registry to be available.
-There are two example methods implemented, one to add and one to subtract numbers.
+Each JSON-RPC method should implement the JsonRpcMethod interface and be registered in the registry 
+to be available. There are two example methods implemented, one to add and one to subtract numbers.
 
 ## Example
 ```
