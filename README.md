@@ -67,5 +67,4 @@ ${"jsonrpc":"2.0","id":"1","result":5}
 
 ## Coming soon
 - Support for by-name parameters
-- Support for batch requests
 - Extended config option (e.g. http server listening port)

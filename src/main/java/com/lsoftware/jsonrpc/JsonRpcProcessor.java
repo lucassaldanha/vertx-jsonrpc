@@ -1,21 +1,18 @@
 package com.lsoftware.jsonrpc;
 
-import static com.lsoftware.jsonrpc.api.JsonRpcMethod.JSONRPC_METHOD_EVENTBUS_ADDRESS_PREFIX;
-
-import com.lsoftware.jsonrpc.api.error.JsonRpcErrorResponse;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.lsoftware.jsonrpc.api.error.JsonRpcErrorResponses;
-import com.lsoftware.jsonrpc.api.JsonRpcRequest;
-import com.lsoftware.jsonrpc.api.JsonRpcResult;
-import com.lsoftware.jsonrpc.api.JsonRpcSuccessResponse;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.AsyncResult;
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.MessageConsumer;
-import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +24,7 @@ public class JsonRpcProcessor extends AbstractVerticle {
 
   @Override
   public void start(Promise<Void> startFuture) {
+    Json.mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
     consumer = vertx.eventBus().consumer(JSONRPC_PROCESSOR_EVENTBUS_ADDRESS, messageHandler());
     consumer.completionHandler(startFuture);
   }
@@ -38,65 +36,41 @@ public class JsonRpcProcessor extends AbstractVerticle {
 
   private Handler<Message<Object>> messageHandler() {
     return msg -> {
-      LOG.debug("Processing message {}", msg.body());
+      LOG.trace("Processing incoming message '{}'", msg.body());
 
-      JsonRpcRequest request;
+      final JsonArray jsonArray;
       try {
-        request = Json.decodeValue((String) msg.body(), JsonRpcRequest.class);
-        if (!request.isValid()) {
-          msg.reply(Json.encode(JsonRpcErrorResponses.invalidRequest()));
-          return;
-        }
-      } catch (ClassCastException | DecodeException e) {
-        msg.reply(Json.encode(JsonRpcErrorResponses.parseError()));
+        jsonArray = decodeMessage((String) msg.body());
+      } catch (JsonRpcException e) {
+        msg.reply(Json.encode(e.getErrorResponse()));
         return;
       }
 
-      vertx.eventBus()
-          .request(JSONRPC_METHOD_EVENTBUS_ADDRESS_PREFIX + request.getMethod(),
-              Json.encode(request), response -> {
-                if (response.succeeded()) {
-                  JsonRpcResult result = Json
-                      .decodeValue((String) response.result().body(), JsonRpcResult.class);
+      final JsonRpcRequestProcessor processor = new JsonRpcRequestProcessor(vertx, jsonArray);
+      final List<Future> futures = processor.processRequests();
 
-                  if (result.isSuccess()) {
-                    msg.reply(
-                        Json.encode(
-                            new JsonRpcSuccessResponse(request.getId(), result.getResult())));
-                  } else {
-                    msg.reply(
-                        Json.encode(new JsonRpcErrorResponse(request.getId(), result.getError())));
-                  }
-                } else {
-                  if (response.cause() instanceof ReplyException) {
-                    handleReplyException(msg, request, response);
-                  } else {
-                    msg.reply(
-                        Json.encode(JsonRpcErrorResponses.internalError(request.getId(), null)));
-                  }
-                }
-              });
+      CompositeFuture.all(futures).setHandler(ar -> {
+        CompositeFuture result = ar.result();
+        List<Object> responses = result.list();
+        if (responses.size() == 1) {
+          msg.reply(Json.encode(responses.get(0)));
+        } else {
+          msg.reply(Json.encode(responses));
+        }
+      });
     };
   }
 
-  private void handleReplyException(Message<Object> msg, JsonRpcRequest request,
-      AsyncResult<Message<Object>> resp) {
-    ReplyException replyException = (ReplyException) resp.cause();
-
-    switch (replyException.failureType()) {
-      case NO_HANDLERS: {
-        msg.reply(Json.encode(JsonRpcErrorResponses.methodNotFound(request.getId())));
-        return;
+  private JsonArray decodeMessage(String msg) {
+    JsonArray jsonArray = null;
+    try {
+      jsonArray = new JsonArray(msg);
+      if (jsonArray.isEmpty()) {
+        throw new JsonRpcException(JsonRpcErrorResponses.invalidRequest());
       }
-      case RECIPIENT_FAILURE: {
-        msg.reply(Json.encode(JsonRpcErrorResponses
-            .internalError(request.getId(), replyException.getMessage())));
-        return;
-      }
-      case TIMEOUT:
-      default:
-        msg.reply(
-            Json.encode(JsonRpcErrorResponses.internalError(request.getId(), null)));
+    } catch (DecodeException e) {
+      throw new JsonRpcException(JsonRpcErrorResponses.parseError());
     }
+    return jsonArray;
   }
 }
