@@ -62,6 +62,8 @@ ${"jsonrpc":"2.0","id":"1","result":5}
 ```
 (by default, the application starts a HTTP server listening on port 8080)
 
-## Coming soon
+## Missing features
 - Support for by-name parameters
 - Extended config option (e.g. http server listening port)
+- Global error handler
+- Nested method namespacing

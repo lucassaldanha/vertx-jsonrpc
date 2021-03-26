@@ -2,6 +2,7 @@ package com.lsoftware.jsonrpc;
 
 import com.lsoftware.jsonrpc.http.HttpJsonRpcServer;
 import com.lsoftware.jsonrpc.methods.MathMethodsGroup;
+import com.lsoftware.jsonrpc.methods.TimeMethod;
 import com.lsoftware.jsonrpc.websockets.WebSocketJsonRpcServer;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -22,6 +23,7 @@ public class Main {
 
     JsonRpcMethodRegistry methodRegistry = new JsonRpcMethodRegistry();
     methodRegistry.addMethodGroup(new MathMethodsGroup());
+    methodRegistry.addMethod(new TimeMethod());
     Future<String> methodRegistryFuture = vertx.deployVerticle(methodRegistry);
 
     Future<String> httpServerFuture = vertx.deployVerticle(new HttpJsonRpcServer());
