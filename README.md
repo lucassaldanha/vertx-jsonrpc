@@ -1,7 +1,7 @@
 # JSON-RPC 2.0 Service
 
 This is an example implementation of a JSON-RPC 2.0 service in Java using 
-[Vert.x](https://vertx.io/) 3.
+[Vert.x](https://vertx.io/) 4.
 
 The main principles behind this implementation are:
 - [JSON-RPC 2.0 spec](https://www.jsonrpc.org/specification) compliant
