@@ -2,6 +2,7 @@ package com.lsoftware.jsonrpc;
 
 import static com.lsoftware.jsonrpc.JsonRpcMessageProcessor.JSONRPC_PROCESSOR_EVENTBUS_ADDRESS;
 import static com.lsoftware.jsonrpc.api.JsonRpcMethod.JSONRPC_METHOD_EVENTBUS_ADDRESS_PREFIX;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lsoftware.jsonrpc.api.JsonRpcResult;
 import com.lsoftware.jsonrpc.api.JsonRpcSuccessResponse;
@@ -15,62 +16,53 @@ import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.Json;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 import java.util.Arrays;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
 
-@RunWith(VertxUnitRunner.class)
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+@ExtendWith(VertxExtension.class)
 public class JsonRpcMessageProcessorTest {
 
   private EventBus eventBus;
 
-  @Before
-  public void before(TestContext context) {
-    Vertx vertx = Vertx.vertx();
+  @BeforeEach
+  public void before(Vertx vertx, VertxTestContext context) {
     eventBus = vertx.eventBus();
 
     JsonRpcMessageProcessor jsonRpcMessageProcessor = new JsonRpcMessageProcessor();
-    vertx.deployVerticle(jsonRpcMessageProcessor, context.asyncAssertSuccess());
+    vertx.deployVerticle(jsonRpcMessageProcessor).onComplete(context.succeedingThenComplete());
   }
 
   @Test
-  public void invalidJsonShouldReturnParseError(TestContext context) {
-    Async async = context.async();
-
+  public void invalidJsonShouldReturnParseError(VertxTestContext context) {
     String parseErrorResponse = Json.encode(JsonRpcErrorResponses.parseError());
 
     eventBus.request(JSONRPC_PROCESSOR_EVENTBUS_ADDRESS, "{",
-        assertExpectedResponse(context, async, parseErrorResponse));
+        assertExpectedResponse(context, parseErrorResponse));
   }
 
   @Test
-  public void invalidJsonRpcRequestShouldReturnInvalidRequest(TestContext context) {
-    Async async = context.async();
-
+  public void invalidJsonRpcRequestShouldReturnInvalidRequest(VertxTestContext context) {
     String expectedInvalidRequestResponse = Json.encode(JsonRpcErrorResponses.invalidRequest());
 
     eventBus.request(JSONRPC_PROCESSOR_EVENTBUS_ADDRESS, "{}",
-        assertExpectedResponse(context, async, expectedInvalidRequestResponse));
+        assertExpectedResponse(context, expectedInvalidRequestResponse));
   }
 
   @Test
-  public void absentMethodShouldReturnMethodNotFound(TestContext context) {
-    Async async = context.async();
-
+  public void absentMethodShouldReturnMethodNotFound(VertxTestContext context) {
     String expectedMethodNotFoundResponse = Json.encode(JsonRpcErrorResponses.methodNotFound("1"));
 
     eventBus.request(JSONRPC_PROCESSOR_EVENTBUS_ADDRESS, request(),
-        assertExpectedResponse(context, async, expectedMethodNotFoundResponse));
+        assertExpectedResponse(context, expectedMethodNotFoundResponse));
   }
 
   @Test
-  public void invalidParamsShouldReturnInvalidParams(TestContext context) {
-    Async async = context.async();
-
+  public void invalidParamsShouldReturnInvalidParams(VertxTestContext context) {
     String expectedInvalidParamsResponse = Json
         .encode(JsonRpcErrorResponses.invalidParams("1", "foo"));
 
@@ -80,75 +72,64 @@ public class JsonRpcMessageProcessorTest {
     });
 
     eventBus.request(JSONRPC_PROCESSOR_EVENTBUS_ADDRESS, request(),
-        assertExpectedResponse(context, async, expectedInvalidParamsResponse));
+        assertExpectedResponse(context, expectedInvalidParamsResponse));
   }
 
   @Test
-  public void unhandledErrorShouldReturnInternalError(TestContext context) {
-    Async async = context.async();
-
+  public void unhandledErrorShouldReturnInternalError(VertxTestContext context) {
     String expectedInternalErrorResponse = Json
         .encode(JsonRpcErrorResponses.internalError("1", "foo"));
 
     prepareResponse(msg -> msg.fail(-999, "foo"));
 
     eventBus.request(JSONRPC_PROCESSOR_EVENTBUS_ADDRESS, request(),
-        assertExpectedResponse(context, async, expectedInternalErrorResponse));
+        assertExpectedResponse(context, expectedInternalErrorResponse));
   }
 
   @Test
-  public void unsuccessfulJsonRpcResultShouldReturnJsonRpcErrorResponse(TestContext context) {
-    Async async = context.async();
-
+  public void unsuccessfulJsonRpcResultShouldReturnJsonRpcErrorResponse(VertxTestContext context) {
     JsonRpcError expectedError = new JsonRpcError(-32000, "aError", "foo");
     String expectedErrorResponse = Json.encode(new JsonRpcErrorResponse("1", expectedError));
 
     prepareResponse(msg -> msg.reply(Json.encode(new JsonRpcResult(expectedError))));
 
     eventBus.request(JSONRPC_PROCESSOR_EVENTBUS_ADDRESS, request(),
-        assertExpectedResponse(context, async, expectedErrorResponse));
+        assertExpectedResponse(context, expectedErrorResponse));
   }
 
   @Test
-  public void successfulJsonRpcResultShouldReturnJsonRpcSuccessfulResponse(TestContext context) {
-    Async async = context.async();
-
+  public void successfulJsonRpcResultShouldReturnJsonRpcSuccessfulResponse(
+      VertxTestContext context) {
     String expectedResponse = Json.encode(new JsonRpcSuccessResponse("1", "aResponse"));
 
     prepareResponse(msg -> msg.reply(Json.encode(new JsonRpcResult("aResponse"))));
 
     eventBus.request(JSONRPC_PROCESSOR_EVENTBUS_ADDRESS, request(),
-        assertExpectedResponse(context, async, expectedResponse));
+        assertExpectedResponse(context, expectedResponse));
   }
 
   @Test
-  public void batchRequestWithEmptyArrayShouldReturnInvalidRequest(TestContext context) {
-    Async async = context.async();
-
+  public void batchRequestWithEmptyArrayShouldReturnInvalidRequest(VertxTestContext context) {
     String batchRequest = "[]";
     String expectedInvalidRequestResponse = Json.encode(JsonRpcErrorResponses.invalidRequest());
 
     eventBus.request(JSONRPC_PROCESSOR_EVENTBUS_ADDRESS, batchRequest,
-        assertExpectedResponse(context, async, expectedInvalidRequestResponse));
+        assertExpectedResponse(context, expectedInvalidRequestResponse));
   }
 
   @Test
   public void batchRequestWithOneInvalidRequestsShouldReturnInvalidRequestResponseObject(
-      TestContext context) {
-    Async async = context.async();
-
+      VertxTestContext context) {
     String batchRequest = "[1]";
     String expectedInvalidRequestResponse = Json.encode(JsonRpcErrorResponses.invalidRequest());
 
     eventBus.request(JSONRPC_PROCESSOR_EVENTBUS_ADDRESS, batchRequest,
-        assertExpectedResponse(context, async, expectedInvalidRequestResponse));
+        assertExpectedResponse(context, expectedInvalidRequestResponse));
   }
 
   @Test
   public void batchRequestWithInvalidRequestsShouldReturnInvalidRequestForEachOne(
-      TestContext context) {
-    Async async = context.async();
-
+      VertxTestContext context) {
     String batchRequest = "[1,2,3]";
     String expectedInvalidRequestResponse = Json.encode(Arrays.asList(
         JsonRpcErrorResponses.invalidRequest(),
@@ -157,14 +138,12 @@ public class JsonRpcMessageProcessorTest {
     ));
 
     eventBus.request(JSONRPC_PROCESSOR_EVENTBUS_ADDRESS, batchRequest,
-        assertExpectedResponse(context, async, expectedInvalidRequestResponse));
+        assertExpectedResponse(context, expectedInvalidRequestResponse));
   }
 
   @Test
   public void batchRequestWithOneValidRequestsShouldReturnOneResponse(
-      TestContext context) {
-    Async async = context.async();
-
+      VertxTestContext context) {
     String batchRequest = "[{}, {\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"aMethod\"}]";
     String expectedResponse = Json.encode(Arrays.asList(
         JsonRpcErrorResponses.invalidRequest(),
@@ -174,13 +153,11 @@ public class JsonRpcMessageProcessorTest {
     prepareResponse(msg -> msg.reply(Json.encode(new JsonRpcResult("aResponse"))));
 
     eventBus.request(JSONRPC_PROCESSOR_EVENTBUS_ADDRESS, batchRequest,
-        assertExpectedResponse(context, async, expectedResponse));
+        assertExpectedResponse(context, expectedResponse));
   }
 
   @Test
-  public void batchRequest(TestContext context) {
-    Async async = context.async();
-
+  public void batchRequest(VertxTestContext context) {
     String batchRequest = "[{\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"aMethod\"},"
         + "{\"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"aMethod\"}]";
 
@@ -190,7 +167,7 @@ public class JsonRpcMessageProcessorTest {
     prepareResponse(msg -> msg.reply(Json.encode(new JsonRpcResult("aResponse"))));
 
     eventBus.request(JSONRPC_PROCESSOR_EVENTBUS_ADDRESS, batchRequest,
-        assertExpectedResponse(context, async, expectedBatchResponse));
+        assertExpectedResponse(context, expectedBatchResponse));
   }
 
   private void prepareResponse(Handler<Message<Object>> handler) {
@@ -201,12 +178,13 @@ public class JsonRpcMessageProcessorTest {
     return "{\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"aMethod\"}";
   }
 
-  private Handler<AsyncResult<Message<Object>>> assertExpectedResponse(TestContext context,
-      Async async, String expectedResponse) {
-    return resp -> {
-      context.assertEquals(expectedResponse, resp.result().body());
-      async.complete();
-    };
+  private Handler<AsyncResult<Message<Object>>> assertExpectedResponse(VertxTestContext context,
+      String expectedResponse) {
+    return resp -> context
+        .verify(() -> {
+          assertThat(expectedResponse).isEqualTo(resp.result().body());
+          context.completeNow();
+        });
   }
 
 }

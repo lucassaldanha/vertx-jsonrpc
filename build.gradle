@@ -17,8 +17,13 @@ dependencies {
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.2'
   implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
 
-  testImplementation group: 'junit', name: 'junit', version: '4.12'
+  testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.1'
+  testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.1'
+
   testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.19.0'
-  testImplementation group: 'io.vertx', name: 'vertx-unit', version: '4.0.3'
-  testImplementation group: 'org.mockito', name: 'mockito-all', version: '1.10.19'
+  testImplementation group: 'io.vertx', name: 'vertx-junit5', version: '4.0.3'
+}
+
+test {
+  useJUnitPlatform()
 }
