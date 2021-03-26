@@ -12,6 +12,7 @@ import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.jackson.DatabindCodec;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +25,7 @@ public class JsonRpcMessageProcessor extends AbstractVerticle {
 
   @Override
   public void start(Promise<Void> startFuture) {
-    Json.mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
+    DatabindCodec.mapper().enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
     consumer = vertx.eventBus().consumer(JSONRPC_PROCESSOR_EVENTBUS_ADDRESS, messageHandler());
     consumer.completionHandler(startFuture);
   }
@@ -49,7 +50,7 @@ public class JsonRpcMessageProcessor extends AbstractVerticle {
       final JsonRpcRequestProcessor processor = new JsonRpcRequestProcessor(vertx, jsonArray);
       final List<Future> futures = processor.processRequests();
 
-      CompositeFuture.all(futures).setHandler(ar -> {
+      CompositeFuture.all(futures).onComplete(ar -> {
         CompositeFuture result = ar.result();
         List<Object> responses = result.list();
         if (responses.size() == 1) {

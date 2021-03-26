@@ -50,12 +50,12 @@ public class JsonRpcMethodRegistry extends AbstractVerticle {
       consumers.add(consumer);
     });
 
-    CompositeFuture.all(futures).setHandler(ar -> {
-      if (ar.succeeded()) {
+    CompositeFuture.all(futures).onComplete(result -> {
+      if (result.succeeded()) {
         started.set(true);
         startPromise.complete();
       } else {
-        startPromise.fail(ar.cause());
+        startPromise.fail(result.cause());
       }
     });
   }
@@ -63,19 +63,15 @@ public class JsonRpcMethodRegistry extends AbstractVerticle {
   @Override
   public void stop(Promise<Void> endFuture) {
     List<Future> futures = new ArrayList<>();
-    consumers.forEach(c -> {
-      Promise<Void> promise = Promise.promise();
-      futures.add(promise.future());
-      c.unregister(promise);
-    });
+    consumers.forEach(c -> futures.add(c.unregister()));
 
-    CompositeFuture.all(futures).setHandler(ar -> {
-      if (ar.succeeded()) {
+    CompositeFuture.all(futures).onComplete(result -> {
+      if (result.succeeded()) {
         consumers.clear();
         started.set(false);
         endFuture.complete();
       } else {
-        endFuture.fail(ar.cause());
+        endFuture.fail(result.cause());
       }
     });
   }

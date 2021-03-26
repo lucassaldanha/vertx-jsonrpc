@@ -5,10 +5,7 @@ import com.lsoftware.jsonrpc.methods.MathMethodsGroup;
 import com.lsoftware.jsonrpc.websockets.WebSocketJsonRpcServer;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import java.util.Arrays;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,34 +14,29 @@ public class Main {
   private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
   public static void main(String[] args) {
+    LOG.info("Starting up...");
+
     Vertx vertx = Vertx.vertx();
 
-    Promise<String> jsonRpcProcessorPromise = Promise.promise();
-    vertx.deployVerticle(new JsonRpcMessageProcessor(), jsonRpcProcessorPromise);
+    Future<String> jsonRpcProcessorFuture = vertx.deployVerticle(new JsonRpcMessageProcessor());
 
     JsonRpcMethodRegistry methodRegistry = new JsonRpcMethodRegistry();
     methodRegistry.addMethodGroup(new MathMethodsGroup());
-    Promise<String> methodRegistryPromise = Promise.promise();
-    vertx.deployVerticle(methodRegistry, methodRegistryPromise);
+    Future<String> methodRegistryFuture = vertx.deployVerticle(methodRegistry);
 
-    Promise<String> httpServerPromise = Promise.promise();
-    vertx.deployVerticle(new HttpJsonRpcServer(), httpServerPromise);
+    Future<String> httpServerFuture = vertx.deployVerticle(new HttpJsonRpcServer());
+    Future<String> websocketServerFuture = vertx.deployVerticle(new WebSocketJsonRpcServer());
 
-    Promise<String> websocketServerPromise = Promise.promise();
-    vertx.deployVerticle(new WebSocketJsonRpcServer(), websocketServerPromise);
-
-    List<Future> futures = Arrays.asList(
-        jsonRpcProcessorPromise.future(),
-        methodRegistryPromise.future(),
-        httpServerPromise.future(),
-        websocketServerPromise.future()
-    );
-
-    CompositeFuture.join(futures).setHandler(ar -> LOG.info("Startup complete"));
+    CompositeFuture future = CompositeFuture.join(
+        jsonRpcProcessorFuture,
+        methodRegistryFuture,
+        httpServerFuture,
+        websocketServerFuture);
+    future.onSuccess((f) -> LOG.info("Startup complete!"));
 
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-      LOG.info("Shutting down");
-      vertx.close();
+      LOG.info("Shutting down...");
+      vertx.close().onComplete((result) -> LOG.info("Shutdown complete!"));
     }));
   }
 }
